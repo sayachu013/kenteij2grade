@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英検準2級特訓 - Stoic Master Ultimate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #deff9a;
+            --primary: #38bdf8;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --text: #f8fafc;
+            --gold: #fbbf24;
+        }
+
+        * { box-sizing: border-box; font-family: 'Urbanist', 'Helvetica Neue', Arial, sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .screen {
+            width: 100%;
+            max-width: 600px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+        }
+
+        .screen.active { display: block; }
+
+        /* --- HOME SCREEN --- */
+        h1 { font-size: 2.5rem; margin-bottom: 5px; color: var(--accent); }
+        .subtitle { opacity: 0.7; margin-bottom: 25px; font-size: 0.9rem; }
+        
+        .mode-selector {
+            display: flex;
+            background: #020617;
+            padding: 6px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .mode-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #64748b;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .mode-tab.active[data-mode="anki"] { background: var(--primary); color: #000; }
+        .mode-tab.active[data-mode="test"] { background: var(--danger); color: #fff; }
+
+        .section-title { text-align: left; font-size: 0.9rem; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;}
+
+        .unit-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .unit-btn {
+            background: var(--card);
+            border: 1px solid rgba(255,255,255,0.05);
+            color: var(--text);
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+        .unit-btn::after {
+            content: '→';
+            opacity: 0.5;
+            transition: transform 0.2s;
+        }
+        .unit-btn:hover { transform: translateX(4px); }
+        .unit-btn.mode-anki:hover { border-color: var(--primary); background: rgba(56, 189, 248, 0.05); }
+        .unit-btn.mode-test:hover { border-color: var(--danger); background: rgba(255, 71, 87, 0.05); }
+        .unit-btn:hover::after { transform: translateX(3px); opacity: 1; }
+
+        /* バッジ表示用の汎用スタイル */
+        .status-badges {
+            display: flex;
+            gap: 6px;
+            margin-right: auto;
+            margin-left: 15px;
+        }
+        .badge-clear-indicator {
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 8px;
+        }
+        .badge-clear-anki {
+            color: var(--primary);
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .badge-clear-test {
+            color: var(--success);
+            background: rgba(46, 213, 115, 0.15);
+            border: 1px solid rgba(46, 213, 115, 0.3);
+        }
+
+        /* テストクリア時の発光エフェクト */
+        .unit-btn.cleared-test {
+            border-color: var(--success) !important;
+            animation: pulse-glow 2s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(46, 213, 115, 0.1); border-color: rgba(46, 213, 115, 0.4); }
+            100% { box-shadow: 0 0 12px rgba(46, 213, 115, 0.4); border-color: var(--success); }
+        }
+
+        /* 復習ボタン専用スタイル */
+        .review-btn {
+            background: #2e1015 !important;
+            border: 1px solid var(--danger) !important;
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.15);
+        }
+        .review-btn:hover {
+            background: #4c1d24 !important;
+        }
+
+        /* --- COMMON UI COMPONENTS --- */
+        .mode-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-bottom: 15px; }
+        .badge-anki { background: rgba(56, 189, 248, 0.1); color: var(--primary); }
+        .badge-test { background: rgba(255, 71, 87, 0.1); color: var(--danger); }
+        .badge-review { background: rgba(255, 71, 87, 0.2); color: #fda4af; border: 1px solid var(--danger); }
+        
+        .progress-counter { font-size: 0.9rem; color: #94a3b8; font-weight: bold; background: #020617; padding: 4px 12px; border-radius: 10px; }
+
+        .word-display { font-size: 3.5rem; font-weight: 700; margin-bottom: 40px; min-height: 90px; display: flex; justify-content: center; align-items: center; letter-spacing: 1px; text-transform: none; }
+        
+        /* --- ANKI SCREEN --- */
+        .anki-meaning { font-size: 1.8rem; color: var(--accent); margin-bottom: 50px; min-height: 40px; visibility: hidden; }
+        
+        /* 暗記モード専用ボタングループ */
+        .anki-btn-container {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+        .anki-action-btn {
+            flex: 1; background: var(--card); border: 2px solid #334155; color: var(--text);
+            padding: 18px; border-radius: 12px; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; font-weight: bold;
+        }
+        .anki-action-btn:hover { border-color: var(--primary); background: #334155; }
+        
+        /* 覚えた・不安ボタン用スタイル */
+        .anki-btn-success { border-color: var(--success); color: var(--success); }
+        .anki-btn-success:hover { background: rgba(46, 213, 115, 0.15); border-color: var(--success); }
+        .anki-btn-danger { border-color: var(--danger); color: var(--danger); }
+        .anki-btn-danger:hover { background: rgba(255, 71, 87, 0.15); border-color: var(--danger); }
+
+        /* --- TEST SCREEN --- */
+        .stats { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; align-items: center; }
+        .combo-count { color: var(--success); font-size: 1.5rem; }
+
+        .timer-track { width: 100%; height: 6px; background: #334155; border-radius: 3px; margin-bottom: 40px; }
+        .timer-bar { width: 100%; height: 100%; background: var(--danger); border-radius: 3px; transition: width 0.1s linear; }
+
+        .choice-grid { display: grid; gap: 12px; }
+        .choice-btn {
+            background: var(--card); border: 2px solid #334155; color: var(--text);
+            padding: 18px; border-radius: 12px; cursor: pointer; font-size: 1.1rem; transition: all 0.2s; text-align: left; padding-left: 20px;
+        }
+        .choice-btn:hover { border-color: var(--danger); background: #334155; }
+
+        /* --- OVERLAY / HEADER --- */
+        .nav-header { text-align: left; margin-bottom: 20px; }
+        .back-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 1rem; padding: 0; }
+        .back-btn:hover { color: var(--text); }
+
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.98);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            visibility: hidden; opacity: 0; transition: 0.3s; z-index: 100; padding: 20px;
+        }
+        .overlay.show { visibility: visible; opacity: 1; }
+        
+        .overlay h2.gameover-title { color: var(--danger); font-size: 3rem; margin: 0 0 10px 0; }
+        .overlay h2.clear-title { color: var(--success); font-size: 3.5rem; margin: 0 0 10px 0; text-shadow: 0 0 20px rgba(46,213,115,0.4); }
+        
+        .overlay p { font-size: 1.2rem; margin: 10px 0; text-align: center; }
+        .retry-btn {
+            background: var(--text); color: #000; border: none; padding: 15px 40px;
+            font-size: 1.1rem; border-radius: 30px; cursor: pointer; font-weight: bold; margin-top: 20px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="home-screen" class="screen active">
+        <h1>英検準2級 <span>Stoic</span></h1>
+        <p class="subtitle">単語特訓シリーズ</p>
+        
+        <div class="mode-selector">
+            <button class="mode-tab active" data-mode="anki" onclick="setMode('anki')">暗記モード</button>
+            <button class="mode-tab" data-mode="test" onclick="setMode('test')">テストモード</button>
+        </div>
+
+        <div class="section-title">チャレンジ単元を選択</div>
+        <div class="unit-grid" id="unit-buttons"></div>
+    </div>
+
+    <div id="anki-screen" class="screen">
+        <div class="nav-header">
+            <button class="back-btn" onclick="backToHome()">← ホームに戻る</button>
+        </div>
+        <div class="stats">
+            <div class="mode-badge badge-anki">暗記モード</div>
+            <div id="anki-unit-name" style="opacity: 0.6; font-size: 0.9rem;">PART</div>
+            <div id="anki-progress" class="progress-counter">残り 0 問</div>
+        </div>
+        <div id="anki-word" class="word-display">Word</div>
+        <div id="anki-meaning" class="anki-meaning">意味</div>
+        
+        <div class="anki-btn-container" id="anki-controls">
+            <button id="anki-main-btn" class="anki-action-btn" onclick="handleAnkiShowAnswer()">答えを表示 (Space)</button>
+        </div>
+    </div>
+
+    <div id="challenge-screen" class="screen">
+        <div class="nav-header">
+            <button class="back-btn" onclick="backToHome()">← ギブアップ</button>
+        </div>
+        <div class="stats">
+            <div id="test-mode-badge" class="mode-badge badge-test">テストモード (5秒制限・一撃死)</div>
+            <div id="test-unit-name" style="opacity: 0.6; font-size: 0.9rem;">PART</div>
+            <div id="test-progress" class="progress-counter">残り 0 / 0 問</div>
+        </div>
+        <div class="stats" style="margin-bottom: 10px;">
+            <div>COMBO: <span id="combo" class="combo-count">0</span></div>
+        </div>
+        <div class="timer-track">
+            <div id="timer-bar" class="timer-bar"></div>
+        </div>
+        <div id="question-word" class="word-display">Word</div>
+        <div class="choice-grid">
+            <button class="choice-btn" onclick="handleAnswer(0)" id="c0">-</button>
+            <button class="choice-btn" onclick="handleAnswer(1)" id="c1">-</button>
+            <button class="choice-btn" onclick="handleAnswer(2)" id="c2">-</button>
+            <button class="choice-btn" onclick="handleAnswer(3)" id="c3">-</button>
+        </div>
+    </div>
+
+    <div id="gameover-overlay" class="overlay">
+        <h2 id="overlay-title" class="gameover-title">GAME OVER</h2>
+        <p id="gameover-msg">ミスまたはタイムアップです</p>
+        <div id="correct-info" style="margin-top: 10px; font-size: 1.4rem; color: var(--accent); font-weight: bold;"></div>
+        <div id="final-combo-info" style="margin-top: 10px; color: #64748b;"></div>
+        <button class="retry-btn" onclick="backToHome()">ホームに戻る</button>
+    </div>
+
+    <script>
+        // 【第1弾】Part 1 の全データ
+        const wordData = {
+            "Part 1 動詞": [
+                { en: "achieve", jp: "～を達成する" },
+                { en: "admire", jp: "～に感心する、～を賞賛する" },
+                { en: "admit", jp: "（事実・妥当性を）認める" },
+                { en: "advise", jp: "～に忠告する、～に勧める" },
+                { en: "affect", jp: "～に影響を及ぼす" },
+                { en: "agree", jp: "同意する、意見が一致する" },
+                { en: "allow", jp: "～を許可する、～を許す" },
+                { en: "annoy", jp: "～をいらいらさせる、～を悩ませる" },
+                { en: "approve", jp: "（計画・行動などに）賛成する" },
+                { en: "argue", jp: "主張する、議論する" },
+                { en: "arise", jp: "（問題などが）生じる、起こる" },
+                { en: "arrange", jp: "～を手配する、～を並べる" },
+                { en: "assume", jp: "～と仮定する、～と思い込む" },
+                { en: "attract", jp: "（興味・人を）引きつける、魅了する" },
+                { en: "avoid", jp: "～を避ける" },
+                { en: "behave", jp: "ふるまう、行動する" },
+                { en: "belong", jp: "所属している、～のものである" },
+                { en: "borrow", jp: "～を（無料で）借りる" },
+                { en: "bother", jp: "～を困らせる、～を悩ませる" },
+                { en: "cancel", jp: "～を取り消す、中止する" },
+                { en: "celebrate", jp: "～を祝う" },
+                { en: "climb", jp: "（山・階段などに）登る" },
+                { en: "collect", jp: "～を集める" },
+                { en: "combine", jp: "～を結合させる、～を組み合わせる" },
+                { en: "communicate", jp: "連絡し合う、伝える" },
+                { en: "compete", jp: "競争する、競う" },
+                { en: "complain", jp: "不満を言う、苦情を言う" },
+                { en: "complete", jp: "～を完成させる、～を完了する" },
+                { en: "concentrate", jp: "集中する" },
+                { en: "concern", jp: "～に関係する、～を心配させる" },
+                { en: "conclude", jp: "～と結論づける" },
+                { en: "conduct", jp: "（調査・実験などを）行う" },
+                { en: "confirm", jp: "～を確認する、～を確かめる" },
+                { en: "connect", jp: "～をつなぐ、～を接続する" },
+                { en: "consider", jp: "～をよく考える、～を考慮する" },
+                { en: "contain", jp: "～を含んでいる" },
+                { en: "continue", jp: "続く、～を続ける" },
+                { en: "contribute", jp: "貢献する、寄付する" },
+                { en: "control", jp: "～を支配する、～を管理する" },
+                { en: "cost", jp: "（費用が）かかる" },
+                { en: "create", jp: "～を創造する、～を作り出す" },
+                { en: "cure", jp: "～を治療する、～を直す" },
+                { en: "damage", jp: "～に損害を与える" },
+                { en: "deal", jp: "扱う、取引する" },
+                { en: "decide", jp: "～を決める、～を決心する" },
+                { en: "decorate", jp: "～を飾る、～を装飾する" },
+                { en: "decrease", jp: "減少する、～を減らす" },
+                { en: "defend", jp: "～を守る、～を防御する" },
+                { en: "deliver", jp: "～を配達する" },
+                { en: "demand", jp: "～を要求する" },
+                { en: "deny", jp: "～を否定する" },
+                { en: "depend", jp: "～に依存する、～次第である" },
+                { en: "describe", jp: "～を描写する、～の特徴を述べる" },
+                { en: "design", jp: "～をデザインする、～を設計する" },
+                { en: "destroy", jp: "～を破壊する" },
+                { en: "determine", jp: "～を決定する、～を決心する" },
+                { en: "develop", jp: "発展する、～を発達させる" },
+                { en: "disappear", jp: "見えなくなる、消え去る" },
+                { en: "discover", jp: "～を発見する" },
+                { en: "discuss", jp: "～について話し合う、議論する" },
+                { en: "display", jp: "～を展示する、～を表示する" },
+                { en: "divide", jp: "～を分ける、～を分割する" },
+                { en: "earn", jp: "（お金・評判などを）稼ぐ、得る" },
+                { en: "educate", jp: "～を教育する" },
+                { en: "encourage", jp: "～を励ます、～を勇気づける" },
+                { en: "enjoy", jp: "～を楽しむ" },
+                { en: "enter", jp: "～に入る" },
+                { en: "envy", jp: "～をうらやむ" },
+                { en: "establish", jp: "～を設立する、～を確立する" },
+                { en: "examine", jp: "～を調査する、～を診察する" },
+                { en: "excite", jp: "～を興奮させる、ワクワクさせる" },
+                { en: "excuse", jp: "～を許す、～の言い訳をする" },
+                { en: "expect", jp: "～を期待する、～を予想する" },
+                { en: "explain", jp: "～を説明する" },
+                { en: "explore", jp: "～を探索する、～を冒険する" },
+                { en: "export", jp: "～を輸出する" },
+                { en: "express", jp: "（感情・意見を）表現する、表す" },
+                { en: "extend", jp: "～を延長する、～を広げる" },
+                { en: "face", jp: "（困難などに）直面する、～に面する" },
+                { en: "fail", jp: "失敗する、（試験に）落ちる" }
+            ],
+            "Part 1 名詞": [
+                { en: "ability", jp: "能力、才能" },
+                { en: "accident", jp: "事故、偶然の出来事" },
+                { en: "activity", jp: "活動" },
+                { en: "actor", jp: "俳優" },
+                { en: "advantage", jp: "利点、強み" },
+                { en: "adventure", jp: "冒険" },
+                { en: "advertisement", jp: "広告" },
+                { en: "advice", jp: "忠告、アドバイス" },
+                { en: "airline", jp: "航空会社" },
+                { en: "airport", jp: "空港" },
+                { en: "amount", jp: "量、金額" },
+                { en: "animal", jp: "動物" },
+                { en: "anniversary", jp: "記念日" },
+                { en: "apartment", jp: "アパート、マンション" },
+                { en: "appearance", jp: "外見、見た目、登場" },
+                { en: "application", jp: "申請、応募、アプリ" },
+                { en: "appointment", jp: "（面会の）約束、予約" },
+                { en: "area", jp: "地域、区域、面積" },
+                { en: "argument", jp: "議論、口論" },
+                { en: "army", jp: "軍隊、陸軍" },
+                { en: "arrangement", jp: "手配、準備、配置" },
+                { en: "art", jp: "芸術、美術" },
+                { en: "article", jp: "記事、品物" },
+                { en: "artist", jp: "芸術家、画家" },
+                { en: "assistant", jp: "助手、アシスタント" },
+                { en: "association", jp: "協会、団体、関連" },
+                { en: "athlete", jp: "運動選手、アスリート" },
+                { en: "atmosphere", jp: "雰囲気、大気" },
+                { en: "audience", jp: "聴衆、観客" },
+                { en: "author", jp: "著者、作家" },
+                { en: "background", jp: "経歴、背景" },
+                { en: "baggage", jp: "（旅行の）手荷物" },
+                { en: "bakery", jp: "パン屋" },
+                { en: "balance", jp: "バランス、均衡、残高" },
+                { en: "balloon", jp: "風船" },
+                { en: "base", jp: "土台、基地、根拠" },
+                { en: "behavior", jp: "ふるまい、行動" },
+                { en: "bicycle", jp: "自転車" },
+                { en: "bill", jp: "請求書、勘定書、紙幣" },
+                { en: "blanket", jp: "毛布" },
+                { en: "blood", jp: "血液" },
+                { en: "board", jp: "板、委員会、（乗り物に）乗り込む" },
+                { en: "body", jp: "身体、肉体" },
+                { en: "bookstore", jp: "書店" },
+                { en: "border", jp: "国境、境界" },
+                { en: "bottle", jp: "瓶、ボトル" },
+                { en: "bottom", jp: "底、最下部" },
+                { en: "boundary", jp: "境界、限界" },
+                { en: "brain", jp: "脳、頭脳" },
+                { en: "branch", jp: "枝、支店、部門" },
+                { en: "bridge", jp: "橋" },
+                { en: "budget", jp: "予算" },
+                { en: "building", jp: "建物、ビル" },
+                { en: "business", jp: "ビジネス、職業、事業" },
+                { en: "calendar", jp: "カレンダー" },
+                { en: "campaign", jp: "キャンペーン、運動" },
+                { en: "campus", jp: "キャンパス、構内" },
+                { en: "candidate", jp: "候補者" },
+                { en: "capital", jp: "首都、資本、大文字" },
+                { en: "captain", jp: "キャプテン、船長、機長" },
+                { en: "career", jp: "経歴、キャリア、職業" },
+                { en: "cash", jp: "現金" },
+                { en: "castle", jp: "城" },
+                { en: "celebrity", jp: "有名人、セレブ" },
+                { en: "cell", jp: "細胞、小部屋" },
+                { en: "century", jp: "世紀（100年間）" },
+                { en: "ceremony", jp: "儀式、式典" },
+                { en: "chairman", jp: "議長、会長" },
+                { en: "challenge", jp: "挑戦、課題" },
+                { en: "champion", jp: "チャンピオン、優勝者" },
+                { en: "channel", jp: "チャンネル、水路" },
+                { en: "character", jp: "性格、特徴、登場人物、文字" },
+                { en: "charity", jp: "慈善、チャリティー" },
+                { en: "chemistry", jp: "化学" },
+                { en: "chief", jp: "長、上司、主要な" },
+                { en: "childhood", jp: "子供時代" },
+                { en: "choice", jp: "選択、選択肢" },
+                { en: "church", jp: "教会" },
+                { en: "citizen", jp: "市民、国民" },
+                { en: "city", jp: "都市、市" }
+            ],
+            "Part 1 形容詞・その他": [
+                { en: "able", jp: "能力がある、～できる" },
+                { en: "absolute", jp: "絶対的な、完全な" },
+                { en: "academic", jp: "学問的な、大学の" },
+                { en: "acceptable", jp: "受け入れられる、許容できる" },
+                { en: "accurate", jp: "正確な" },
+                { en: "active", jp: "活動的な、積極的な" },
+                { en: "actual", jp: "実際の、現実の" },
+                { en: "additional", jp: "追加の" },
+                { en: "advanced", jp: "進歩した、上級の" },
+                { en: "afraid", jp: "恐れて、心配して" },
+                { en: "against", jp: "～に反対して、～に対抗して" },
+                { en: "alike", jp: "似ている、同様に" },
+                { en: "alive", jp: "生きている" },
+                { en: "alone", jp: "一人の、単独で" },
+                { en: "along", jp: "～に沿って" },
+                { en: "already", jp: "すでに、もう" },
+                { en: "alternative", jp: "代わりの、代替の" },
+                { en: "amateur", jp: "アマチュアの" },
+                { en: "amazing", jp: "驚くべき、素晴らしい" },
+                { en: "ancient", jp: "古代の" },
+                { en: "angry", jp: "怒っている" },
+                { en: "annual", jp: "年に一度の、毎年の" },
+                { en: "anxious", jp: "心配して、切望して" },
+                { en: "apart", jp: "離れて" },
+                { en: "apparent", jp: "明白な、見たところ～らしい" },
+                { en: "appropriate", jp: "適切な、ふさわしい" },
+                { en: "artificial", jp: "人工的な" },
+                { en: "ashamed", jp: "恥じて" },
+                { en: "asleep", jp: "眠って" },
+                { en: "attractive", jp: "魅力的な" },
+                { en: "automatic", jp: "自動の" },
+                { en: "available", jp: "利用可能な、入手可能な" },
+                { en: "average", jp: "平均の" },
+                { en: "awake", jp: "目が覚めて" },
+                { en: "awesome", jp: "素晴らしい、最高の" },
+                { en: "awful", jp: "ひどい、恐ろしい" },
+                { en: "badly", jp: "ひどく、下手におおいに" },
+                { en: "beautiful", jp: "美しい" },
+                { en: "behind", jp: "～の後ろに" },
+                { en: "below", jp: "～より下に" },
+                { en: "besides", jp: "～に加えて、その上" },
+                { en: "beyond", jp: "～を越えて" },
+                { en: "bitter", jp: "苦い、つらい" },
+                { en: "blind", jp: "目の不自由な、気づかない" },
+                { en: "bored", jp: "退屈した" },
+                { en: "boring", jp: "退屈な、つまらない" },
+                { en: "brave", jp: "勇敢な" },
+                { en: "brief", jp: "短時間の、簡潔な" },
+                { en: "bright", jp: "輝いている、明るい、賢い" },
+                { en: "brilliant", jp: "素晴らしい、輝かしい" },
+                { en: "broad", jp: "広い、広範囲な" },
+                { en: "busy", jp: "忙しい" },
+                { en: "calm", jp: "穏やかな、落ち着いた" },
+                { en: "careful", jp: "注意深い" },
+                { en: "careless", jp: "不注意な" },
+                { en: "casual", jp: "形式ばらない、カジュアルな" },
+                { en: "certain", jp: "確信して、特定の" },
+                { en: "cheap", jp: "安い" },
+                { en: "cheerful", jp: "陽気な、元気な" },
+                { en: "chemical", jp: "化学の" },
+                { en: "chiefly", jp: "主に" },
+                { en: "classic", jp: "古典的な、最高級の" },
+                { en: "clear", jp: "澄んだ、明白な" },
+                { en: "clever", jp: "賢い、利口な" },
+                { en: "close", jp: "近い、親しい、閉める" },
+                { en: "comfortable", jp: "快適な" },
+                { en: "common", jp: "共通の、一般的な" },
+                { en: "competitive", jp: "競争の激しい" },
+                { en: "complete", jp: "完全な、完成した" },
+                { en: "complex", jp: "複雑な" },
+                { en: "confident", jp: "自信がある" },
+                { en: "conscious", jp: "意識している" },
+                { en: "considerable", jp: "かなりの、相当な" },
+                { en: "constant", jp: "絶え間ない、一定の" },
+                { en: "convenient", jp: "便利な、都合の良い" },
+                { en: "cool", jp: "涼しい、かっこいい" },
+                { en: "correct", jp: "正しい" },
+                { en: "crazy", jp: "狂気じみた、熱狂して" },
+                { en: "creative", jp: "創造的な" },
+                { en: "cruel", jp: "残酷な" }
+            ],
+            // 続きのメニューは、第2弾・第3弾で順次お届けします！
+            "Part 2 動詞": [
+                { en: "fear", jp: "～を恐れる" },
+                { en: "feed", jp: "～にエサをやる、～を養う" },
+                { en: "fill", jp: "～を満たす" },
+                { en: "fit", jp: "（サイズ・目的が）合う、適する" },
+                { en: "fix", jp: "～を修理する、～を固定する" },
+                { en: "float", jp: "浮かぶ、～を浮かべる" },
+                { en: "flow", jp: "流れる" },
+                { en: "fly", jp: "飛ぶ、飛行機で行く" },
+                { en: "fold", jp: "～を折りたたむ" },
+                { en: "follow", jp: "～に従う、～に続く" },
+                { en: "forgive", jp: "（罪・人を）許す" },
+                { en: "freeze", jp: "凍る、～を凍らせる" },
+                { en: "frighten", jp: "～を怖がらせる、～をびっくりさせる" },
+                { en: "gain", jp: "（利益・体重などを）得る、増す" },
+                { en: "gather", jp: "集まる、～を集める" },
+                { en: "gaze", jp: "見つめる、凝視する" },
+                { en: "graduate", jp: "卒業する" },
+                { en: "greet", jp: "～に挨拶する、～を迎える" },
+                { en: "guard", jp: "～を守る、～を監視する" },
+                { en: "guess", jp: "～を推測する" },
+                { en: "guide", jp: "～を案内する、～を導く" },
+                { en: "handle", jp: "～を扱う、～を処理する" },
+                { en: "hang", jp: "～を掛ける、～を吊るす" },
+                { en: "harm", jp: "～を傷つける、～に害を及ぼす" },
+                { en: "hate", jp: "～をひどく嫌う" },
+                { en: "hide", jp: "隠れる、～を隠す" },
+                { en: "hire", jp: "～を雇う" },
+                { en: "hold", jp: "～を開催する、～を手に持つ" },
+                { en: "hunt", jp: "狩りをする" },
+                { en: "hurry", jp: "急ぐ、～を急がせる" },
+                { en: "hurt", jp: "～を痛める、痛む" },
+                { en: "ignore", jp: "～を無視する" },
+                { en: "imagine", jp: "～を想像する" },
+                { en: "import", jp: "～を輸入する" },
+                { en: "impress", jp: "～に強い印象を与える、～を感動させる" },
+                { en: "improve", jp: "～を改善する、～を向上させる" },
+                { en: "include", jp: "～を含んでいる" },
+                { en: "increase", jp: "増加する、～を増やす" },
+                { en: "indicate", jp: "～を指し示す、～を明確に示す" },
+                { en: "influence", jp: "～に影響を与える" },
+                { en: "inform", jp: "～に知らせる、～に通知する" },
+                { en: "inject", jp: "～を注射する、～を注入する" },
+                { en: "injure", jp: "～を傷つける、～にけがをさせる" },
+                { en: "insist", jp: "～を強く主張する、～と言い張る" },
+                { en: "inspire", jp: "～を奮起させる、～にインスピレーションを与える" },
+                { en: "install", jp: "（装置・ソフトを）設置する、導入する" },
+                { en: "intend", jp: "～するつもりである" },
+                { en: "interest", jp: "～に興味を起こさせる" },
+                { en: "interfere", jp: "邪魔をする、干渉する" },
+                { en: "interrupt", jp: "～を中断させる、～の邪魔をする" },
+                { en: "introduce", jp: "～を紹介する、～を導入する" },
+                { en: "invent", jp: "～を発明する" },
+                { en: "invest", jp: "～を投資する" },
+                { en: "invite", jp: "～を招待する" },
+                { en: "involve", jp: "～を巻き込む、～を伴う" },
+                { en: "judge", jp: "～を判断する、～を審査する" },
+                { en: "jump", jp: "跳ぶ、ジャンプする" },
+                { en: "keep", jp: "～を保つ、～を維持する" },
+                { en: "knock", jp: "ノックする" },
+                { en: "lack", jp: "～を欠いている、～が不足している" },
+                { en: "last", jp: "続く、長持ちする" },
+                { en: "laugh", jp: "（声を立てて）笑う" },
+                { en: "lay", jp: "～を横たえる、～を置く" },
+                { en: "lead", jp: "～を導く、～を案内する" },
+                { en: "lean", jp: "寄りかかる、身を乗り出す" },
+                { en: "leap", jp: "跳び越える、跳ぶ" },
+                { en: "learn", jp: "～を学ぶ、～を身につける" },
+                { en: "leave", jp: "～を去る、～を残す" },
+                { en: "lend", jp: "～を貸す" },
+                { en: "let", jp: "～に（したいように）～させる" },
+                { en: "lick", jp: "～をなめる" },
+                { en: "lie", jp: "横たわる、嘘をつく" },
+                { en: "lift", jp: "～を持ち上げる" },
+                { en: "light", jp: "～に火をつける、～を照らす" },
+                { en: "like", jp: "～を好む" },
+                { en: "limit", jp: "～を制限する" },
+                { en: "line", jp: "並ぶ、～を並べる" },
+                { en: "link", jp: "～をつなぐ、～を関連づける" },
+                { en: "list", jp: "～をリストにする、一覧に載せる" },
+                { en: "listen", jp: "（意識して）聴く" }
+            ],
+            "Part 2 名詞": [
+                { en: "climate", jp: "気候" },
+                { en: "clinic", jp: "診療所、クリニック" },
+                { en: "cloth", jp: "布、布地" },
+                { en: "clothes", jp: "衣服、服" },
+                { en: "clothing", jp: "衣類（集合的）" },
+                { en: "cloud", jp: "雲" },
+                { en: "club", jp: "クラブ、部活動" },
+                { en: "coach", jp: "コーチ、指導者" },
+                { en: "coast", jp: "海岸、沿岸" },
+                { en: "coin", jp: "硬貨、コイン" },
+                { en: "collection", jp: "収集、コレクション" },
+                { en: "college", jp: "（単科）大学" },
+                { en: "colleague", jp: "（職場の）同僚" },
+                { en: "combination", jp: "組み合わせ" },
+                { en: "comedy", jp: "喜劇、コメディー" },
+                { en: "comfort", jp: "快適さ、慰め" },
+                { en: "comic", jp: "漫画、コミック本" },
+                { en: "command", jp: "命令、指揮" },
+                { en: "comment", jp: "コメント、意見、批評" },
+                { en: "commerce", jp: "商業、通商" },
+                { en: "commercial", jp: "コマーシャル、広告放送" },
+                { en: "committee", jp: "委員会" },
+                { en: "communication", jp: "コミュニケーション、通信" },
+                { en: "community", jp: "地域社会、コミュニティー" },
+                { en: "company", jp: "会社、仲間" },
+                { en: "companion", jp: "仲間、旅の連れ" },
+                { en: "comparison", jp: "比較" },
+                { en: "competition", jp: "競争、コンテスト" },
+                { en: "complaint", jp: "不満、苦情" },
+                { en: "conclusion", jp: "結論、結末" },
+                { en: "condition", jp: "状態、条件、体調" },
+                { en: "conduct", jp: "行為、ふるまい、運営" },
+                { en: "conference", jp: "（大規模な）会議" },
+                { en: "confidence", jp: "自信、信頼" },
+                { en: "conflict", jp: "衝突、対立" },
+                { en: "connection", jp: "接続、つながり、関係" },
+                { en: "conscience", jp: "良心" },
+                { en: "consciousness", jp: "意識" },
+                { en: "consequence", jp: "結果、成り行き" },
+                { en: "consideration", jp: "考慮、思いやり" },
+                { en: "consist", jp: "成り立っていること、一貫性" },
+                { en: "continent", jp: "大陸" },
+                { en: "contract", jp: "契約（書）" },
+                { en: "contribution", jp: "貢献、寄付" },
+                { en: "control", jp: "管理、支配" },
+                { en: "convenience", jp: "便利、都合" },
+                { en: "conversation", jp: "会話" },
+                { en: "cook", jp: "料理する人、料理人" },
+                { en: "cooperation", jp: "協力、協調" },
+                { en: "copy", jp: "コピー、写し、1部（本など）" },
+                { en: "corner", jp: "角、コーナー" },
+                { en: "corporation", jp: "大企業、法人" },
+                { en: "cost", jp: "費用、コスト、犠牲" },
+                { en: "costume", jp: "衣装、コスチューム" },
+                { en: "cottage", jp: "コテージ、小規模な別荘" },
+                { en: "cotton", jp: "綿、木綿" },
+                { en: "couch", jp: "ソファー、カウチ" },
+                { en: "council", jp: "議会、評議会" },
+                { en: "counter", jp: "カウンター、窓口" },
+                { en: "countryside", jp: "田舎、地方" },
+                { en: "county", jp: "（米・英の）郡" },
+                { en: "couple", jp: "一対、カップル、2つ" },
+                { en: "courage", jp: "勇気" },
+                { en: "course", jp: "進路、コース、課程" },
+                { en: "court", jp: "裁判所、コート（テニス等）" },
+                { en: "cousin", jp: "いとこ" },
+                { en: "craft", jp: "工芸、技術、工芸品" },
+                { en: "creature", jp: "生き物、創造物" },
+                { en: "credit", jp: "信用、クレジット" },
+                { en: "crew", jp: "乗組員、クルー" },
+                { en: "crime", jp: "犯罪" },
+                { en: "crisis", jp: "危機" },
+                { en: "criticism", jp: "批判、批評" },
+                { en: "crop", jp: "農作物、収穫高" },
+                { en: "crowd", jp: "群衆、人混み" },
+                { en: "crown", jp: "王冠" },
+                { en: "culture", jp: "文化" },
+                { en: "cupboard", jp: "食器棚" },
+                { en: "cure", jp: "治療、治療法" },
+                { en: "curiosity", jp: "好奇心" }
+            ],
+            "Part 2 形容詞・その他": [
+                { en: "cultural", jp: "文化的な" },
+                { en: "curious", jp: "好奇心旺盛な、奇妙な" },
+                { en: "current", jp: "現在の、流通している" },
+                { en: "daily", jp: "毎日の、日々の" },
+                { en: "dangerous", jp: "危険な" },
+                { en: "dark", jp: "暗い、濃い" },
+                { en: "dead", jp: "死んでいる" },
+                { en: "dear", jp: "親愛なる、高価な" },
+                { en: "decent", jp: "きちんとした、まともな" },
+                { en: "deep", jp: "深い" },
+                { en: "definite", jp: "明確な、確定した" },
+                { en: "deliberate", jp: "故意の、計画的な" },
+                { en: "delicate", jp: "繊細な、壊れやすい" },
+                { en: "delicious", jp: "美味しい" },
+                { en: "delighted", jp: "とても喜んで" },
+                { en: "democratic", jp: "民主的な、民主主義の" },
+                { en: "dependent", jp: "依存している、～次第の" },
+                { en: "depressed", jp: "落ち込んでいる、意気消沈した" },
+                { en: "desperate", jp: "必死の、絶望的な" },
+                { en: "detailed", jp: "詳細な" },
+                { en: "determined", jp: "決意が固い" },
+                { en: "different", jp: "違った、異なる" },
+                { en: "difficult", jp: "難しい" },
+                { en: "digital", jp: "デジタル色の" },
+                { en: "diplomatic", jp: "外交的な" },
+                { en: "direct", jp: "直接の、まっすぐな" },
+                { en: "dirty", jp: "汚い" },
+                { en: "disappointed", jp: "がっかりした、失望した" },
+                { en: "disappointing", jp: "がっかりさせるような" },
+                { en: "disastrous", jp: "悲惨な、破滅的な" },
+                { en: "distant", jp: "遠い、離れた" },
+                { en: "distinct", jp: "明確に異なる、はっきりした" },
+                { en: "diverse", jp: "多様な" },
+                { en: "domestic", jp: "国内の、家庭の" },
+                { en: "double", jp: "2倍の、二重の" },
+                { en: "doubtful", jp: "疑わしい、不確かな" },
+                { en: "dramatic", jp: "劇的な、演劇の" },
+                { en: "dreadful", jp: "恐ろしい、ひどい" },
+                { en: "dry", jp: "乾いた" },
+                { en: "due", jp: "提出期限の、～する予定の" },
+                { en: "dull", jp: "退屈な、鈍い" },
+                { en: "dumb", jp: "口がきけない、ばかげた" },
+                { en: "eager", jp: "熱望して、しきりに～したがる" },
+                { en: "early", jp: "早い、早く" },
+                { en: "earnest", jp: "まじめな、真剣な" },
+                { en: "easy", jp: "簡単な" },
+                { en: "economic", jp: "経済の、経済学の" },
+                { en: "economical", jp: "経済的な、節約になる" },
+                { en: "educational", jp: "教育的な、教育の" },
+                { en: "effective", jp: "効果的な" },
+                { en: "efficient", jp: "効率的な、有能な" },
+                { en: "either", jp: "（2つのうちの）どちらかの" },
+                { en: "elderly", jp: "年配の" },
+                { en: "electric", jp: "電気の" },
+                { en: "electrical", jp: "電気に関する" },
+                { en: "electronic", jp: "電子の" },
+                { en: "elegant", jp: "優雅な、上品な" },
+                { en: "elementary", jp: "初歩の、基本の" },
+                { en: "embarrassed", jp: "恥ずかしい、決まりが悪い" },
+                { en: "emergency", jp: "緊急の、非常事態の" },
+                { en: "emotional", jp: "感情的な、感情の" },
+                { en: "empty", jp: "空の、誰もいない" },
+                { en: "endless", jp: "終わりのない、無限の" },
+                { en: "energetic", jp: "精力的な、元気いっぱいの" },
+                { en: "enormous", jp: "巨大な、莫大な" },
+                { en: "enough", jp: "十分な" },
+                { en: "entire", jp: "全体の、すべての" },
+                { en: "environmental", jp: "環境の" },
+                { en: "equal", jp: "等しい、平等な" },
+                { en: "equivalent", jp: "同等の、相当する" },
+                { en: "essential", jp: "不可欠な、最も重要な" },
+                { en: "even", jp: "～でさえ、さらに" },
+                { en: "everyday", jp: "毎日の、日常の" },
+                { en: "evident", jp: "明白な" },
+                { en: "exact", jp: "正確な、まさにその" },
+                { en: "excellent", jp: "非常に優れた、抜群の" },
+                { en: "exceptional", jp: "例外的な、非常に優れた" },
+                { en: "excited", jp: "興奮した、ワクワクしている" },
+                { en: "exciting", jp: "興奮させる、ハラハラする" },
+                { en: "exotic", jp: "異国風の、外来の" }
+            ],
+            "Part 3 動詞": [
+                { en: "lock", jp: "～に鍵をかける" },
+                { en: "maintain", jp: "～を維持する、～を主張する" },
+                { en: "manage", jp: "～をどうにか成し遂げる、～を管理する" },
+                { en: "manufacture", jp: "～を製造する" },
+                { en: "marry", jp: "～と結婚する" },
+                { en: "match", jp: "～と調和する、～に匹敵する" },
+                { en: "matter", jp: "重要である、問題となる" },
+                { en: "mean", jp: "～を意味する" },
+                { en: "measure", jp: "～を測定する" },
+                { en: "mention", jp: "～について言及する、～を口にする" },
+                { en: "mind", jp: "～を気にする、嫌がる" },
+                { en: "miss", jp: "～を逃す、～がいなくて寂しく思う" },
+                { en: "misunderstand", jp: "～を誤解する" },
+                { en: "mix", jp: "～を混ぜる、混ざる" },
+                { en: "move", jp: "動く、～を感動させる、引っ越す" },
+                { en: "multiply", jp: "～を増やす、～に（数を）掛ける" },
+                { en: "negotiate", jp: "交渉する" },
+                { en: "notice", jp: "～に気づく" },
+                { en: "obey", jp: "～に従う" },
+                { en: "object", jp: "反対する" },
+                { en: "observe", jp: "～を観察する、～に気づく" },
+                { en: "obtain", jp: "～を入手する、～を得る" },
+                { en: "occupy", jp: "（場所・時間を）占める、占領する" },
+                { en: "occur", jp: "（出来事が）起こる、（考えが）浮かぶ" },
+                { en: "offer", jp: "～を提供する、～を申し出る" },
+                { en: "operate", jp: "（機械などを）操作する、手術する" },
+                { en: "oppose", jp: "～に反対する" },
+                { en: "order", jp: "～を注文する、～に命令する" },
+                { en: "organize", jp: "～を組織する、～を準備する" },
+                { en: "overcome", jp: "～を克服する、～に打ち勝つ" },
+                { en: "owe", jp: "～に借金がある、～のおかげである" },
+                { en: "own", jp: "～を所有している" },
+                { en: "pack", jp: "（荷物を）詰める、荷造りする" },
+                { en: "paint", jp: "～を塗る、～を（絵の具で）描く" },
+                { en: "participate", jp: "参加する" },
+                { en: "pass", jp: "（試験に）合格する、～を通り過ぎる、渡す" },
+                { en: "pay", jp: "（お金を）支払う" },
+                { en: "perceive", jp: "～を知覚する、～と気づく" },
+                { en: "perform", jp: "～を行う、～を上演する" },
+                { en: "permit", jp: "～を許可する" },
+                { en: "persuade", jp: "～を説得する" },
+                { en: "pick", jp: "～を選ぶ、～を摘む" },
+                { en: "plant", jp: "～を植える" },
+                { en: "play", jp: "（スポーツ・楽器などを）する、遊ぶ" },
+                { en: "please", jp: "～を喜ばせる" },
+                { en: "point", jp: "指し示す、向ける" },
+                { en: "pollute", jp: "～を汚染する" },
+                { en: "pop", jp: "飛び出す、ポンと弾ける" },
+                { en: "position", jp: "～を配置する、～を置く" },
+                { en: "possess", jp: "～を所有している" }
+            ],
+            "Part 3 名詞": [
+                { en: "curtain", jp: "カーテン" },
+                { en: "custom", jp: "慣習、習慣、税関" },
+                { en: "customer", jp: "顧客、客" },
+                { en: "damage", jp: "損害、ダメージ" },
+                { en: "danger", jp: "危険、危難" },
+                { en: "darkness", jp: "暗闇、暗さ" },
+                { en: "date", jp: "日付、デート" },
+                { en: "daughter", jp: "娘" },
+                { en: "dawn", jp: "夜明け" },
+                { en: "debate", jp: "討論、ディベート" },
+                { en: "debt", jp: "借金、負債" },
+                { en: "decade", jp: "10年間" },
+                { en: "decision", jp: "決定、決断" },
+                { en: "deck", jp: "デッキ、甲板" },
+                { en: "declaration", jp: "宣言、発表" },
+                { en: "decline", jp: "減少、衰退" },
+                { en: "decoration", jp: "装飾、飾り" },
+                { en: "decrease", jp: "減少" },
+                { en: "deed", jp: "行為、行い" },
+                { en: "defeat", jp: "敗北" },
+                { en: "defense", jp: "防衛、防御" },
+                { en: "deficit", jp: "赤字、不足（額）" },
+                { en: "definition", jp: "定義" },
+                { en: "degree", jp: "程度、度（温度・角度）、学位" },
+                { en: "delay", jp: "遅れ、遅延" },
+                { en: "delight", jp: "大喜び、歓喜" },
+                { en: "delivery", jp: "配達" },
+                { en: "demand", jp: "需要、要求" },
+                { en: "democracy", jp: "民主主義" },
+                { en: "demonstration", jp: "実演、デモ行進" },
+                { en: "dentist", jp: "歯医者" },
+                { en: "department", jp: "部門、学科、課" },
+                { en: "departure", jp: "出発" },
+                { en: "dependence", jp: "依存、従属" },
+                { en: "deposit", jp: "預金、頭金、保証金" },
+                { en: "depression", jp: "憂うつ、不況" },
+                { en: "depth", jp: "深さ、奥行き" },
+                { en: "description", jp: "描写、記述、説明" },
+                { en: "desert", jp: "砂漠" },
+                { en: "design", jp: "デザイン、設計" },
+                { en: "desire", jp: "願望、強い欲望" },
+                { en: "desk", jp: "机" },
+                { en: "despair", jp: "絶望" },
+                { en: "destination", jp: "目的地、行き先" },
+                { en: "destruction", jp: "破壊" },
+                { en: "detail", jp: "詳細、細部" },
+                { en: "determination", jp: "決意、決定" },
+                { en: "development", jp: "発展、開発" },
+                { en: "device", jp: "装置、機器、工夫" },
+                { en: "devil", jp: "悪魔" }
+            ],
+            "Part 3 形容詞・その他": [
+                { en: "expensive", jp: "高価な、費用のかかる" },
+                { en: "experienced", jp: "経験豊富な" },
+                { en: "experimental", jp: "実験的な" },
+                { en: "expert", jp: "熟練した、専門的な" },
+                { en: "express", jp: "急行の、明確な" },
+                { en: "extensive", jp: "広範囲にわたる、大規模な" },
+                { en: "external", jp: "外部の" },
+                { en: "extra", jp: "余分の、追加の" },
+                { en: "extraordinary", jp: "並外れた、異常な" },
+                { en: "extreme", jp: "極端な、過激な" },
+                { en: "fair", jp: "公平な、まずまずの" },
+                { en: "fairly", jp: "かなり、公平に" },
+                { en: "faithful", jp: "忠実な、誠実な" },
+                { en: "false", jp: "誤った、偽の" },
+                { en: "familiar", jp: "なじみのある、よく知られた" },
+                { en: "famous", jp: "有名な" },
+                { en: "fantastic", jp: "素晴らしい、空想的な" },
+                { en: "far", jp: "遠い、遠くへ" },
+                { en: "fascinating", jp: "魅力的な、うっとりさせるような" },
+                { en: "fashionable", jp: "流行の、おしゃれな" },
+                { en: "fast", jp: "速い、速く" },
+                { en: "fatal", jp: "致命的な" },
+                { en: "favorable", jp: "好都合な、好意的な" },
+                { en: "favorite", jp: "お気に入りの" },
+                { en: "federal", jp: "連邦の" },
+                { en: "fellow", jp: "仲間の、同僚の" },
+                { en: "female", jp: "女性の、雌の" },
+                { en: "fertile", jp: "肥沃な、多産の" },
+                { en: "festive", jp: "お祭りの、にぎやかな" },
+                { en: "few", jp: "ほとんどない（数）" },
+                { en: "fierce", jp: "激しい、凶暴な" },
+                { en: "final", jp: "最終の、最後の" },
+                { en: "financial", jp: "財政上の、金融の" },
+                { en: "fine", jp: "素晴らしい、元気な、細かい、立派な" },
+                { en: "firm", jp: "固い、確固たる" },
+                { en: "fit", jp: "適した、健康な" },
+                { en: "fixed", jp: "固定された、定着した" },
+                { en: "flat", jp: "平らな、パンクした" },
+                { en: "flexible", jp: "柔軟な、曲げやすい" },
+                { en: "fluent", jp: "流暢な" },
+                { en: "following", jp: "次の、あとに続く" },
+                { en: "fond", jp: "好んで、大好きで" },
+                { en: "foolish", jp: "愚かな、ばかげた" },
+                { en: "foreign", jp: "外国の" },
+                { en: "formal", jp: "公式の、形式的な" },
+                { en: "former", jp: "前の、かつての" },
+                { en: "fortunate", jp: "幸運な" },
+                { en: "forward", jp: "前へ、前方へ" },
+                { en: "frank", jp: "率直な" },
+                { en: "free", jp: "自由な、無料の、暇な" }
+            ],
+            "熟語・会話表現": [
+                { en: "a few", jp: "少しの、2〜3の" },
+                { en: "a great deal of", jp: "たくさんの、多量の" },
+                { en: "a piece of", jp: "1つの、1枚の" },
+                { en: "a sort of", jp: "一種の、～のようなもの" },
+                { en: "according to", jp: "～によれば、～に従って" },
+                { en: "add to", jp: "～を増やす、～に加える" },
+                { en: "agree with", jp: "～に同意する、～と一致する" },
+                { en: "all over", jp: "～の至る所で、すっかり終わって" },
+                { en: "all the time", jp: "いつも、常に" },
+                { en: "all the way", jp: "はるばる、ずっと" },
+                { en: "and so on", jp: "～など" },
+                { en: "apply for", jp: "～に申し込む、～を志願する" },
+                { en: "as a result", jp: "結果として" },
+                { en: "as for", jp: "～に関する限り、～はと言えば" },
+                { en: "as soon as", jp: "～するとすぐに" },
+                { en: "as well", jp: "～もまた、同様に" },
+                { en: "ask for", jp: "～を求める、～を請求する" },
+                { en: "at a loss", jp: "途方に暮れて" },
+                { en: "at first", jp: "最初は、はじめのうちは" },
+                { en: "at last", jp: "ついに、ようやく" },
+                { en: "at least", jp: "少なくとも" },
+                { en: "at the same time", jp: "同時に" },
+                { en: "be able to", jp: "～することができる" },
+                { en: "be absent from", jp: "～を欠席している" },
+                { en: "be afraid of", jp: "～を恐れている" },
+                { en: "be based on", jp: "～に基づいている" },
+                { en: "be covered with", jp: "～で覆われている" },
+                { en: "be crowded with", jp: "～で混雑している" },
+                { en: "be different from", jp: "～と異なっている" },
+                { en: "be famous for", jp: "～で有名である" },
+                { en: "be filled with", jp: "～で満たされている" },
+                { en: "be fond of", jp: "～が大好きである" },
+                { en: "be full of", jp: "～でいっぱいである" },
+                { en: "be good at", jp: "～が得意である" },
+                { en: "be in trouble", jp: "困っている、窮地に陥っている" },
+                { en: "be interested in", jp: "～に興味がある" },
+                { en: "be late for", jp: "～に遅れる" },
+                { en: "be made of", jp: "～でできている（材料）" },
+                { en: "be proud of", jp: "～を誇りに思っている" },
+                { en: "be short of", jp: "～が不足している" },
+                { en: "be similar to", jp: "～と似ている" },
+                { en: "be tired of", jp: "～に飽きている、～にうんざりしている" },
+                { en: "belong to", jp: "～に所属している、～のものである" },
+                { en: "break down", jp: "故障する、崩壊する" },
+                { en: "bring up", jp: "～を育て上げる、（問題を）持ち出す" },
+                { en: "by chance", jp: "偶然に" },
+                { en: "call for", jp: "～を要求する、～を必要とする、〜を迎えにいく" },
+                { en: "call off", jp: "～を中止する、～を取り消す" },
+                { en: "care for", jp: "～を好む、～の世話をする" },
+                { en: "carry out", jp: "～を実行する、～を遂行する" },
+                { en: "catch up with", jp: "～に追いつく" },
+                { en: "change one's mind", jp: "考えを変える、気が変わる" },
+                { en: "come across", jp: "～に偶然出くわす、～をふと見つける" },
+                { en: "come true", jp: "（夢などが）実現する" },
+                { en: "congratulations on", jp: "～をお祝いします" },
+                { en: "depend on", jp: "～に依存する、～次第である" },
+                { en: "die of", jp: "～（病気など）で死ぬ" },
+                { en: "do one's best", jp: "最善を尽くす" },
+                { en: "drop in", jp: "ふらりと立ち寄る" },
+                { en: "each other", jp: "お互い" },
+                { en: "far from", jp: "～から遠く離れて、決して～ではない" },
+                { en: "feel like doing", jp: "～したい気がする" },
+                { en: "figure out", jp: "～を理解する、～を計算する" },
+                { en: "find out", jp: "～を見つけ出す、～を知る" },
+                { en: "for a while", jp: "しばらくの間" },
+                { en: "for example", jp: "例えば" },
+                { en: "for instance", jp: "例えば" },
+                { en: "for the first time", jp: "初めて" },
+                { en: "get along with", jp: "～と仲良くやっていく" },
+                { en: "get in touch with", jp: "～と連絡を取り合う" },
+                { en: "get lost", jp: "道に迷う" },
+                { en: "get over", jp: "～を乗り越える、～から回復する" },
+                { en: "get rid of", jp: "～を処分する、～を取り除く" },
+                { en: "get used to", jp: "～に慣れる" },
+                { en: "give up", jp: "～を諦める、～をやめる" },
+                { en: "go 0n", jp: "続ける、進む、起こる" },
+                { en: "grow up", jp: "成長する、大人になる" },
+                { en: "had better do", jp: "～したほうがいい（強い忠告）" },
+                { en: "hand in", jp: "～を提出する" },
+                { en: "hang up", jp: "電話を切る、～をハンガーにかける" },
+                { en: "How about doing?", jp: "～してはいかがですか？" },
+                { en: "I'd love to.", jp: "ぜひそうしたいです。" },
+                { en: "I'm afraid so.", jp: "残念ながらそのようです。" },
+                { en: "It's my pleasure.", jp: "どういたしまして（私の喜びです）。" },
+                { en: "Keep in touch.", jp: "連絡を取り合いましょう。" },
+                { en: "Make yourself at home.", jp: "どうぞお気楽に（くつろいで）ください。" },
+                { en: "No problem.", jp: "問題ありません、どういたしまして。" },
+                { en: "That's a good idea.", jp: "それはいい考えですね。" },
+                { en: "Why don't we do?", jp: "～しませんか？（提案）" },
+                { en: "Would you like some help?", jp: "お手伝いしましょうか？" }
+            ]
+        };
+
+        let selectedMode = 'anki'; 
+        let currentPool = [];     
+        let originalPoolLength = 0; 
+        let currentQuestion = null;
+        let currentUnitKey = "";   
+        
+        // 状態管理用オブジェクト
+        let clearedAnkiUnits = []; // 暗記モードでクリアした単元リスト
+        let clearedUnits = [];     // テストモードでクリアした単元リスト
+        let reviewList = [];       // 間違えた問題を保存する復習リスト
+        let isReviewMode = false;  
+
+        // 暗記用状態
+        let isMeaningRevealed = false;
+
+        // テスト用状態
+        let combo = 0;
+        let timer = null;
+        const TIME_LIMIT = 5000;
+
+        // ホーム画面のボタン生成・更新関数
+        function renderUnitButtons() {
+            const unitContainer = document.getElementById('unit-buttons');
+            unitContainer.innerHTML = ""; 
+
+            // 1. 復習リストが1件以上あれば最上部に表示
+            if (reviewList.length > 0) {
+                const rBtn = document.createElement('button');
+                rBtn.className = 'unit-btn review-btn';
+                rBtn.innerHTML = `<span>🚨 【復習】間違えた問題 (${reviewList.length}語)</span>`;
+                rBtn.onclick = () => startReviewSession();
+                unitContainer.appendChild(rBtn);
+            }
+
+            // 2. 通常の単元ボタンを描写
+            Object.keys(wordData).forEach(key => {
+                const btn = document.createElement('button');
+                btn.id = `btn-${key}`;
+                btn.innerText = key;
+                
+                let classes = `unit-btn mode-${selectedMode}`;
+                
+                // テストモードクリア時は発光エフェクト
+                if (clearedUnits.includes(key)) {
+                    classes += ' cleared-test'; 
+                }
+                btn.className = classes;
+
+                // バッジ格納エリアの作成
+                const badgeContainer = document.createElement('div');
+                badgeContainer.className = 'status-badges';
+
+                if (clearedAnkiUnits.includes(key)) {
+                    const ankiBadge = document.createElement('span');
+                    ankiBadge.className = 'badge-clear-indicator badge-clear-anki';
+                    ankiBadge.innerText = '✓ ANKI';
+                    badgeContainer.appendChild(ankiBadge);
+                }
+                if (clearedUnits.includes(key)) {
+                    const testBadge = document.createElement('span');
+                    testBadge.className = 'badge-clear-indicator badge-clear-test';
+                    testBadge.innerText = '👑 TEST';
+                    badgeContainer.appendChild(testBadge);
+                }
+                btn.appendChild(badgeContainer);
+                
+                btn.onclick = () => startSession(key);
+                unitContainer.appendChild(btn);
+            });
+        }
+
+        // モード変更
+        function setMode(mode) {
+            selectedMode = mode;
+            document.querySelectorAll('.mode-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`.mode-tab[data-mode="${mode}"]`).classList.add('active');
+            renderUnitButtons();
+        }
+
+        // 配列シャッフル関数
+        function shuffle(array) {
+            let shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // セッション開始
+        function startSession(key) {
+            isReviewMode = false;
+            currentUnitKey = key;
+            currentPool = shuffle(wordData[key]);
+            originalPoolLength = currentPool.length;
+            
+            if (selectedMode === 'anki') {
+                document.getElementById('anki-unit-name').innerText = key;
+                showScreen('anki-screen');
+                initAnkiQuestion();
+            } else {
+                document.getElementById('test-unit-name').innerText = key;
+                document.getElementById('test-mode-badge').className = "mode-badge badge-test";
+                document.getElementById('test-mode-badge').innerText = "テストモード (5秒制限・一撃死)";
+                combo = 0;
+                document.getElementById('combo').innerText = combo;
+                showScreen('challenge-screen');
+                nextTestQuestion();
+            }
+        }
+
+        // 復習セッション開始
+        function startReviewSession() {
+            isReviewMode = true;
+            currentUnitKey = "REVIEW_LIST";
+            currentPool = shuffle(reviewList);
+            originalPoolLength = currentPool.length;
+
+            document.getElementById('test-unit-name').innerText = "弱点克服特訓";
+            document.getElementById('test-mode-badge').className = "mode-badge badge-review";
+            document.getElementById('test-mode-badge').innerText = "復習モード (5秒制限・一撃死)";
+            combo = 0;
+            document.getElementById('combo').innerText = combo;
+            showScreen('challenge-screen');
+            nextTestQuestion();
+        }
+
+        // 間違えた問題を復習リストに追加（重複なし）
+        function addToReviewList(wordObj) {
+            const exists = reviewList.some(item => item.en === wordObj.en);
+            if (!exists) {
+                reviewList.push(wordObj);
+            }
+        }
+
+        /* ==========================================
+           ▼ 暗記モード ロジック
+        ========================================== */
+        function initAnkiQuestion() {
+            if (currentPool.length === 0) {
+                if (!clearedAnkiUnits.includes(currentUnitKey)) {
+                    clearedAnkiUnits.push(currentUnitKey); 
+                }
+                showSessionClear("暗記モード完了！", "この単元の全単語をチェックしました。次はテストモードに挑戦してみましょう！");
+                return;
+            }
+
+            document.getElementById('anki-progress').innerText = `残り ${currentPool.length} 問`;
+
+            isMeaningRevealed = false;
+            currentQuestion = currentPool.shift(); 
+            
+            document.getElementById('anki-word').innerText = currentQuestion.en;
+            
+            const meaning = document.getElementById('anki-meaning');
+            meaning.innerText = currentQuestion.jp;
+            meaning.style.visibility = 'hidden';
+            
+            const controls = document.getElementById('anki-controls');
+            controls.innerHTML = `<button id="anki-main-btn" class="anki-action-btn" onclick="handleAnkiShowAnswer()">答えを表示 (Space)</button>`;
+        }
+
+        function handleAnkiShowAnswer() {
+            document.getElementById('anki-meaning').style.visibility = 'visible';
+            isMeaningRevealed = true;
+
+            const controls = document.getElementById('anki-controls');
+            controls.innerHTML = `
+                <button class="anki-action-btn anki-btn-danger" onclick="handleAnkiChoice(false)">不安… (Backspace)</button>
+                <button class="anki-action-btn anki-btn-success" onclick="handleAnkiChoice(true)">覚えた！ (Enter)</button>
+            `;
+        }
+
+        function handleAnkiChoice(isKnown) {
+            if (!isKnown) {
+                currentPool.push(currentQuestion);
+            }
+            initAnkiQuestion();
+        }
+
+        /* ==========================================
+           ▼ テストモード ロジック
+        ========================================== */
+        function nextTestQuestion() {
+            if (timer) clearInterval(timer);
+            
+            if (currentPool.length === 0) {
+                if (!isReviewMode) {
+                    if (!clearedUnits.includes(currentUnitKey)) {
+                        clearedUnits.push(currentUnitKey); 
+                    }
+                    showSessionClear("COMPLETE!!", `おめでとうございます！<br>「${currentUnitKey}」の全 ${originalPoolLength} 問を完全制覇しました！`);
+                } else {
+                    reviewList = []; 
+                    showSessionClear("弱点克服成功！", "復習リストの間違えた問題をすべてクリアしました！");
+                }
+                return;
+            }
+
+            document.getElementById('test-progress').innerText = `残り ${currentPool.length} / ${originalPoolLength} 問`;
+
+            currentQuestion = currentPool.pop(); 
+            document.getElementById('question-word').innerText = currentQuestion.en;
+
+            let choices = [currentQuestion.jp];
+            
+            const primarySource = isReviewMode ? reviewList : wordData[currentUnitKey];
+            let attempts = 0;
+            while (choices.length < 4 && choices.length < primarySource.length && attempts < 100) {
+                let randomWord = primarySource[Math.floor(Math.random() * primarySource.length)].jp;
+                if (!choices.includes(randomWord)) choices.push(randomWord);
+                attempts++;
+            }
+            
+            if (choices.length < 4) {
+                const allKeys = Object.keys(wordData);
+                while (choices.length < 4) {
+                    let randomKey = allKeys[Math.floor(Math.random() * allKeys.length)];
+                    let randomWord = wordData[randomKey][Math.floor(Math.random() * wordData[randomKey].length)].jp;
+                    if (!choices.includes(randomWord)) choices.push(randomWord);
+                }
+            }
+            
+            choices.sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < 4; i++) {
+                const btn = document.getElementById(`c${i}`);
+                btn.innerText = choices[i];
+                btn.dataset.correct = (choices[i] === currentQuestion.jp);
+            }
+
+            const bar = document.getElementById('timer-bar');
+            let start = Date.now();
+            bar.style.width = '100%';
+
+            timer = setInterval(() => {
+                let passed = Date.now() - start;
+                let per = 100 - (passed / TIME_LIMIT * 100);
+                bar.style.width = per + '%';
+
+                if (passed >= TIME_LIMIT) {
+                    clearInterval(timer);
+                    addToReviewList(currentQuestion); 
+                    testGameOver("TIME UP!");
+                }
+            }, 50);
+        }
+
+        function handleAnswer(idx) {
+            const btn = document.getElementById(`c${idx}`);
+            if (btn.dataset.correct === "true") {
+                combo++;
+                document.getElementById('combo').innerText = combo;
+                nextTestQuestion();
+            } else {
+                addToReviewList(currentQuestion); 
+                testGameOver("WRONG!");
+            }
+        }
+
+        function testGameOver(reason) {
+            clearInterval(timer);
+            const titleEl = document.getElementById('overlay-title');
+            titleEl.className = "gameover-title";
+            titleEl.innerText = "GAME OVER";
+
+            document.getElementById('gameover-msg').innerText = reason === "TIME UP!" ? "時間切れです！" : "間違いです！";
+            document.getElementById('correct-info').innerText = `${currentQuestion.en} ＝ ${currentQuestion.jp}`;
+            document.getElementById('final-combo-info').innerText = `記録: ${combo} コンボ`;
+            document.getElementById('gameover-overlay').classList.add('show');
+        }
+
+        function showSessionClear(title, message) {
+            clearInterval(timer);
+            const titleEl = document.getElementById('overlay-title');
+            titleEl.className = "clear-title";
+            titleEl.innerText = title;
+
+            document.getElementById('gameover-msg').innerHTML = message;
+            document.getElementById('correct-info').innerText = "";
+            document.getElementById('final-combo-info').innerText = !isReviewMode && selectedMode === 'test' ? `達成コンボ: ${combo}!` : "";
+            document.getElementById('gameover-overlay').classList.add('show');
+        }
+
+        /* ==========================================
+           ▼ 共通・キーボード制御
+        ========================================== */
+        function backToHome() {
+            if (timer) clearInterval(timer);
+            document.getElementById('gameover-overlay').classList.remove('show');
+            showScreen('home-screen');
+            renderUnitButtons(); 
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        window.addEventListener('keydown', function(e) {
+            const ankiScreen = document.getElementById('anki-screen');
+            if (ankiScreen.classList.contains('active')) {
+                if (!isMeaningRevealed) {
+                    if (e.code === "Space") {
+                        e.preventDefault();
+                        handleAnkiShowAnswer();
+                    }
+                } else {
+                    if (e.code === "Enter") {
+                        e.preventDefault();
+                        handleAnkiChoice(true);
+                    } else if (e.code === "Backspace") {
+                        e.preventDefault();
+                        handleAnkiChoice(false);
+                    }
+                }
+            }
+        });
+
+        renderUnitButtons();
+    </script>
+</body>
+</html>
