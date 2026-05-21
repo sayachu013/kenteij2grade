@@ -1235,10 +1235,19 @@
 
             currentQuestion = currentPool.pop(); 
             document.getElementById('question-word').innerText = currentQuestion.en;
-
-            let choices = [currentQuestion.jp];
-            
-            const primarySource = isReviewMode ? reviewList : wordData[currentUnitKey];
+let choices = [currentQuestion.jp];
+// 出題された単語が本来所属している単元（Part）を自動で特定する
+let primarySource = [];
+if (isReviewMode) {
+    // 全データの中から、今出題されている英語(en)が含まれる単元を探す
+    const originKey = Object.keys(wordData).find(key => 
+        wordData[key].some(item => item.en === currentQuestion.en)
+    );
+    // 見つかったらその単元（同じ品詞）からダミーを抽出、なければ全データ
+    primarySource = originKey ? wordData[originKey] : [];
+} else {
+    primarySource = wordData[currentUnitKey];
+}
             let attempts = 0;
             while (choices.length < 4 && choices.length < primarySource.length && attempts < 100) {
                 let randomWord = primarySource[Math.floor(Math.random() * primarySource.length)].jp;
